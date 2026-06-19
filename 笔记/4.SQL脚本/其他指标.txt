@@ -1,0 +1,86 @@
+  - name: ORDER_COUNT
+    description: 统计周期内的订单总数量，按order_id去重计数。
+    relevant_columns:
+      - fact_order.order_id
+    alias: [ 订单数, 下单量 ]
+  - name: ORDER_COUNT_BY_REGION
+    description: 按地区维度（region_id/region_name）统计的订单数量。
+    relevant_columns:
+      - fact_order.order_id
+      - dim_region.region_id
+      - dim_region.region_name
+    alias: [ 区域订单量, 各地区下单数 ]
+  - name: SALES_QUANTITY
+    description: 统计周期内所有订单的商品购买数量总和。
+    relevant_columns:
+      - fact_order.order_quantity
+    alias: [ 总销量, 销售件数 ]
+  - name: SALES_QUANTITY_BY_CATEGORY
+    description: 按商品品类（category）统计的商品销售数量。
+    relevant_columns:
+      - fact_order.order_quantity
+      - dim_product.category
+    alias: [ 品类销售件数, 分类销量 ]
+  - name: AVG_ORDER_QUANTITY
+    description: 订单商品购买数量的平均值（总销量/订单总数）。
+    relevant_columns:
+      - fact_order.order_quantity
+      - fact_order.order_id
+    alias: [ 单均商品数, 平均购买件数 ]
+  - name: AVG_AMOUNT_BY_CUSTOMER
+    description: 统计周期内客户的平均订单金额（GMV/客户数）。
+    relevant_columns:
+      - fact_order.order_amount
+      - fact_order.customer_id
+    alias: [ 客均消费, 客户平均下单金额 ]
+  - name: GMV_BY_MEMBER_LEVEL
+    description: 按客户会员等级（member_level）统计的成交总额。
+    relevant_columns:
+      - fact_order.order_amount
+      - dim_customer.member_level
+    alias: [ 会员等级销售额, 各等级成交总额 ]
+  - name: DAILY_GMV
+    description: 按日期维度（date_id/year/month/day）统计的每日GMV。
+    relevant_columns:
+      - fact_order.order_amount
+      - dim_date.date_id
+      - dim_date.year
+      - dim_date.month
+      - dim_date.day
+    alias: [ 日GMV, 每日成交总额 ]
+  - name: QUARTERLY_SALES
+    description: 按季度（quarter）统计的商品销售总量。
+    relevant_columns:
+      - fact_order.order_quantity
+      - dim_date.quarter
+    alias: [ 季度销售件数, 季度销量 ]
+  - name: GMV_BY_BRAND
+    description: 按商品品牌（brand）统计的成交总额。
+    relevant_columns:
+      - fact_order.order_amount
+      - dim_product.brand
+    alias: [ 品牌GMV, 各品牌销售额 ]
+  - name: TOP_PRODUCT_SALES
+    description: 按商品名称（product_name）排序的商品销售数量TOP榜。
+    relevant_columns:
+      - fact_order.order_quantity
+      - dim_product.product_id
+      - dim_product.product_name
+    alias: [ 商品销量TOP, 热销商品件数 ]
+  - name: CUSTOMER_COUNT
+    description: 统计周期内下单的客户总数量，按customer_id去重计数。
+    relevant_columns:
+      - fact_order.customer_id
+    alias: [ 下单客户数, 客户数量 ]
+  - name: CUSTOMER_COUNT_BY_GENDER
+    description: 按客户性别（gender）统计的下单客户数量。
+    relevant_columns:
+      - fact_order.customer_id
+      - dim_customer.gender
+    alias: [ 性别客户数, 男女下单人数 ]
+  - name: MEMBER_LEVEL_COUNT
+    description: 按会员等级（member_level）统计的下单客户数量。
+    relevant_columns:
+      - fact_order.customer_id
+      - dim_customer.member_level
+    alias: [ 会员等级客户数, 各等级下单人数 ]
