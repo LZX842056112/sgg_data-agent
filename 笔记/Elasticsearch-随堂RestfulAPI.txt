@@ -1,0 +1,183 @@
+正向索引-MySQL B+Tree索引
+   主键索引 先根据主键ID查询 主键索引 B+Tree
+   
+倒排索引: 三个阶段  分词   去重   排序
+需求：1. 小米17白色1TB最新款   2.小米笔记本电脑
+
+1.分词 中文分词器 ik
+  小米    1
+  白色    1
+  最新    1
+  最新款  1
+  小米    2
+  笔记    2
+  笔记本  2
+  电脑    2
+  
+2.去重
+  小米    1,2
+  白色    1
+  最新    1
+  最新款  1
+  笔记    2
+  笔记本  2
+  电脑    2
+  
+3.排序
+ 白色    1
+ 小米    1,2
+ 
+查询过程：搜索关键词 - 小米手机白色
+
+1.先分词 小米 跟 手机
+2.查询倒排索引文档列表  确定包含在 1,2号文档
+3.根据文档ID得到商品记录
+
+
+MySQL                    Elasticsearch
+
+database 数据库          index 索引库
+table    表              type ES5.0固定为 _doc
+row      记录            document 文档 JSON格式
+field    字段            field    字段
+
+字段类型约束 通过DDL Schema约束      通过Mapping映射规定字段数据类型，其他信息
+
+
+
+#字符串数据类型 
+#text：文本会进行分词，配合IK分词器，适合全文检索。缺点：不能排序、分组（聚合） 电商系统商品，商品名称、商品介绍信息 ，CSDN 博客标题，正文
+
+#keyword: 不会分词，支持精确查询，排序，分组（聚合），不支持全文查询。
+
+
+GET _analyze
+{
+  "analyzer" : "standard",
+  "text" : "苹果IPhone17 promax 白色"
+}
+
+GET _analyze
+{
+  "analyzer" : "ik_max_word",
+  "text" : "小米雪花"
+}
+
+
+#设计商品索引库 商品id,商品名称,品牌，商品图片，商品价格
+PUT /goods
+{
+  "mappings": {
+    "dynamic": false,
+    "properties": {
+      "id": {
+        "type": "long"
+      },
+      "name": {
+        "type": "text",
+        "analyzer": "ik_max_word"
+      },
+      "brand":{
+        "type": "keyword"
+      },
+      "image":{
+        "type": "keyword",
+        "index": false
+      },
+      "price":{
+        "type": "float"
+      }
+    }
+  }
+}
+
+
+
+# 新增数据
+POST goods/_doc
+{
+    "id":1,
+    "name":"小米17ProMax 1T 雪花白 8GB+16GB",
+    "brand":"小米",
+    "image":"www.xxx.xxx/xm.png",
+    "price":5000
+}
+
+POST goods/_doc/2
+{
+    "id":2,
+    "name":"小米17ProMax 1T 冰晶蓝 8GB+16GB",
+    "brand":"小米",
+    "image":"www.xxx.xxx/xm.png",
+    "price":6000
+}
+
+POST goods/_doc/3
+{
+    "id":3,
+    "name":"小米su7 ultra长续航版本",
+    "brand":"小米汽车",
+    "image":"www.xxx.xxx/xm.png",
+    "price":406000
+}
+
+#text类型字段采用match全文查询  对查询文本分词后匹配词条
+POST goods/_search
+{
+    "query": {
+        "match": {
+          "name": "小米雪花"
+        }
+    }
+}
+
+# 品牌精确查询
+POST goods/_search
+{
+    "query": {
+        "term": {
+          "brand": {
+            "value": "小米汽车"
+          }
+        }
+    }
+}
+
+
+# 先根据品牌分组，分组后再对价格进行统计
+POST goods/_search
+{
+    "aggs": {
+      "brand_agg": {
+        "terms": {
+            "field": "brand"
+        },
+        "aggs": {
+          "stat_agg": {
+            "stats": {
+                "field": "price"
+            }
+          }
+        }
+      }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

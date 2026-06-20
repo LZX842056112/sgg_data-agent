@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-
 from omegaconf import OmegaConf
 
 
@@ -82,4 +81,15 @@ structured = OmegaConf.structured(AppConfig)
 # 3.合并内容跟结构化对象，转为dataclass对象
 app_config: AppConfig = OmegaConf.to_object(OmegaConf.merge(structured, context))
 
-# print(app_config)
+if __name__ == '__main__':
+    from app.core.log import logger
+
+    # print(app_config)
+    # print(app_config.db_dw.host, app_config.db_dw.database)
+
+    # logger.remove()
+
+    logger.debug("Debug日志")
+    logger.info("Info级别日志")
+    logger.warning("warning日志")
+    logger.error("error日志")

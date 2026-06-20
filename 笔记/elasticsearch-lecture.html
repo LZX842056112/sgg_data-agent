@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElasticSearch 7.4 全套教程 — 尚硅谷课件 V3.0</title>
+<style>
+/* ===== CSS Reset & Variables ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #faf9f5;
+  --surface: #ffffff;
+  --text: #1a1a1a;
+  --text-secondary: #555;
+  --accent: #00bfb3;
+  --accent-dark: #009688;
+  --border: #e8e6dc;
+  --code-bg: #f4f4f5;
+  --highlight: #fff3cd;
+  --warning: #e65100;
+  --success: #2e7d32;
+  --sidebar-bg: #1a1a2e;
+  --sidebar-text: #c8c8d4;
+  --card-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+  --transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] {
+  --bg: #141413;
+  --surface: #1e1e1e;
+  --text: #e8e6dc;
+  --text-secondary: #b0aea5;
+  --border: #333;
+  --code-bg: #2a2a2a;
+  --highlight: #3d3520;
+  --card-shadow: 0 1px 2px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  display: flex;
+  min-height: 100vh;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition);
+  box-shadow: 2px 0 20px rgba(0,0,0,0.15);
+}
+.sidebar-header {
+  padding: 28px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-header h1 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+.sidebar-header .version {
+  font-size: 0.75rem;
+  color: var(--accent);
+  margin-top: 4px;
+}
+.sidebar-nav { flex: 1; padding: 16px 0; }
+.nav-chapter { margin-bottom: 2px; }
+.nav-chapter-title {
+  display: flex; align-items: center;
+  padding: 10px 24px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ddd;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+.nav-chapter-title:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.nav-chapter-title.active { background: rgba(0,191,179,0.12); border-left-color: var(--accent); color: var(--accent); }
+.nav-chapter-title .icon { margin-right: 10px; font-size: 1rem; width: 20px; text-align: center; }
+.nav-sections { display: none; padding: 4px 0; }
+.nav-chapter.open .nav-sections { display: block; }
+.nav-section {
+  display: block;
+  padding: 6px 24px 6px 58px;
+  font-size: 0.82rem;
+  color: #999;
+  text-decoration: none;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+.nav-section:hover { color: #ddd; background: rgba(255,255,255,0.03); }
+.nav-section.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,191,179,0.05); }
+
+.sidebar-footer {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.75rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.theme-toggle {
+  background: none; border: 1px solid rgba(255,255,255,0.15);
+  color: #aaa; cursor: pointer;
+  padding: 6px 12px; border-radius: 6px;
+  font-size: 0.78rem;
+  transition: all 0.2s;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ===== Main Content ===== */
+.main { margin-left: 280px; flex: 1; min-width: 0; }
+.content { max-width: 960px; margin: 0 auto; padding: 48px 40px 80px; }
+
+/* ===== Chapter Styles ===== */
+.chapter { margin-bottom: 72px; scroll-margin-top: 32px; }
+.chapter-header {
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid var(--border);
+}
+.chapter-num {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.chapter h2 { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; }
+.chapter h3 {
+  font-size: 1.35rem; font-weight: 600;
+  margin: 40px 0 16px;
+  color: var(--text);
+  scroll-margin-top: 32px;
+}
+.chapter h4 {
+  font-size: 1.1rem; font-weight: 600;
+  margin: 28px 0 12px;
+  color: var(--text-secondary);
+}
+
+/* ===== Cards ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin: 20px 0;
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition);
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.08); }
+.card-title {
+  font-size: 1rem; font-weight: 700;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+/* ===== Code ===== */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  margin: 16px 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+code {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-size: 0.88em;
+}
+:not(pre) > code {
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ===== Comparison Table ===== */
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 24px 0;
+}
+.comparison-col {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  background: var(--surface);
+}
+.comparison-col h5 { font-size: 1rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.comparison-col ul { padding-left: 20px; }
+.comparison-col li { margin-bottom: 6px; font-size: 0.92rem; line-height: 1.6; }
+.comparison-col .pro { color: var(--success); }
+.comparison-col .con { color: var(--warning); }
+
+/* ===== Highlight Box ===== */
+.highlight-box {
+  background: var(--highlight);
+  border-left: 4px solid var(--accent);
+  padding: 16px 20px;
+  margin: 20px 0;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.94rem;
+}
+.highlight-box strong { color: var(--accent-dark); }
+
+/* ===== Diagram ===== */
+.diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  margin: 24px 0;
+  text-align: center;
+  overflow-x: auto;
+}
+.diagram svg { max-width: 100%; height: auto; }
+
+/* ===== Step List ===== */
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 20px 0; }
+.steps li {
+  counter-increment: step;
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.steps li:last-child { border-bottom: none; }
+.steps li::before {
+  content: counter(step);
+  background: var(--accent);
+  color: #fff;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ===== Tags ===== */
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-right: 6px;
+}
+.tag-green { background: #e8f5e9; color: #2e7d32; }
+.tag-blue { background: #e3f2fd; color: #1565c0; }
+.tag-orange { background: #fff3e0; color: #e65100; }
+.tag-red { background: #ffebee; color: #c62828; }
+
+/* ===== TOC in content ===== */
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin: 32px 0;
+}
+.toc h3 { margin-top: 0; margin-bottom: 16px; }
+.toc-list { list-style: none; padding: 0; columns: 2; column-gap: 32px; }
+.toc-list li { margin-bottom: 8px; break-inside: avoid; }
+.toc-list a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+.toc-list a:hover { color: var(--accent); }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .content { padding: 24px 20px 60px; }
+  .comparison { grid-template-columns: 1fr; }
+  .toc-list { columns: 1; }
+}
+.mobile-menu-btn {
+  display: none;
+  position: fixed; top: 16px; left: 16px;
+  z-index: 200; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; cursor: pointer; font-size: 1.2rem;
+  box-shadow: var(--card-shadow);
+}
+@media (max-width: 900px) { .mobile-menu-btn { display: block; } }
+
+/* ===== API Method Badge ===== */
+.method {
+  display: inline-block;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 0.75rem; font-weight: 700;
+  font-family: monospace;
+  margin-right: 8px;
+}
+.method-get { background: #e3f2fd; color: #1565c0; }
+.method-put { background: #fff3e0; color: #e65100; }
+.method-post { background: #e8f5e9; color: #2e7d32; }
+.method-delete { background: #ffebee; color: #c62828; }
+.method-head { background: #f3e5f5; color: #7b1fa2; }
+</style>
+</head>
+<body>
+
+<!-- Mobile Menu Button -->
+<button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="菜单">☰ 目录</button>
+
+<!-- Sidebar Navigation -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>ElasticSearch 7.4</h1>
+    <div class="version">尚硅谷课件 V3.0 · 全套教程</div>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav"></nav>
+  <div class="sidebar-footer">
+    <span>ElasticSearch 7.4</span>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="切换主题">🌙 暗色</button>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+<div class="content">
+
+<!-- ===== 目录 ===== -->
+<div class="toc" id="toc">
+  <h3>📑 课程目录</h3>
+  <ol class="toc-list">
+    <li><a href="#ch1">第一章 ElasticSearch简介</a></li>
+    <li><a href="#ch2">第二章 ElasticSearch安装与启动</a></li>
+    <li><a href="#ch3">第三章 ElasticSearch核心概念</a></li>
+    <li><a href="#ch4">第四章 客户端操作（REST API）</a></li>
+    <li><a href="#ch5">第五章 ElasticSearch集群</a></li>
+    <li><a href="#ch6">第六章 高级Java客户端</a></li>
+    <li><a href="#ch7">第七章 Spring Data Elasticsearch</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 第一章 ==================== -->
+<section class="chapter" id="ch1">
+<div class="chapter-header">
+  <div class="chapter-num">Chapter 1</div>
+  <h2>ElasticSearch 简介</h2>
+</div>
+
+<h3 id="ch1-1">1.1 什么是 ElasticSearch</h3>
+<p>Elasticsearch，简称为 <strong>ES</strong>，是一个<strong>开源的高扩展分布式全文检索引擎</strong>。它可以近乎实时的存储、检索数据；本身扩展性很好，可以扩展到上百台服务器，处理 PB 级别的数据。</p>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> ES 核心特点</div>
+  <ul style="padding-left:20px; line-height:2;">
+    <li>使用 <strong>Java</strong> 开发，基于 <strong>Lucene</strong> 作为核心索引与搜索引擎</li>
+    <li>通过简单的 <strong>RESTful API</strong> 隐藏 Lucene 的复杂性</li>
+    <li><strong>分布式</strong>架构，可横向扩展到上百台服务器</li>
+    <li><strong>近实时</strong>（Near Real-Time，NRT）搜索</li>
+    <li>处理 <strong>PB 级别</strong>的海量数据</li>
+  </ul>
+</div>
+
+<h3 id="ch1-2">1.1.1 什么是全文检索</h3>
+
+<h4>数据分类</h4>
+<div class="comparison">
+  <div class="comparison-col">
+    <h5>📊 结构化数据</h5>
+    <p>具有<strong>固定格式</strong>或<strong>有限长度</strong>的数据</p>
+    <ul><li>数据库表（MySQL/Oracle）</li><li>元数据</li><li>CSV/Excel 表格</li></ul>
+    <p style="margin-top:8px;color:var(--success)">✓ 搜索简单：用 SQL 即可快速查询</p>
+  </div>
+  <div class="comparison-col">
+    <h5>📝 非结构化数据</h5>
+    <p><strong>不定长</strong>或<strong>无固定格式</strong>的数据</p>
+    <ul><li>邮件、Word/PDF 文档</li><li>网页内容、日志文件</li><li>社交媒体文本</li></ul>
+    <p style="margin-top:8px;color:var(--warning)">✗ 搜索困难：需要全文检索技术</p>
+  </div>
+</div>
+
+<h4>两种查询方法对比</h4>
+<div class="comparison">
+  <div class="comparison-col">
+    <h5>🐢 顺序扫描法（Sequential Scan）</h5>
+    <p>一个一个文档地看，从头看到尾，判断是否包含目标字符串。</p>
+    <p class="con">❌ 数据量大时极慢，如 Windows 文件内容搜索</p>
+  </div>
+  <div class="comparison-col">
+    <h5>🚀 全文检索（Full-Text Search）</h5>
+    <p>先对非结构化数据<strong>提取信息 → 建立索引</strong>，再对索引进行搜索。</p>
+    <p class="pro">✓ 索引创建耗时长，但创建后可多次使用，搜索极快</p>
+  </div>
+</div>
+
+<div class="highlight-box">
+  <strong>💡 形象理解：</strong>全文检索就像<strong>查字典</strong>——字典的拼音检字表就是"索引"，通过索引快速定位页码，而不是一页页翻。先建立索引，再对索引搜索的过程就叫<strong>全文检索</strong>。
+</div>
+
+<h3 id="ch1-3">1.1.2 全文检索的实现流程</h3>
+
+<!-- 全文检索流程图 -->
+<div class="diagram">
+  <svg viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#00bfb3"/></marker>
+      <marker id="arrowRed" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e65100"/></marker>
+    </defs>
+    <!-- 绿色部分：索引过程 -->
+    <rect x="10" y="10" width="780" height="120" rx="10" fill="#e0f7fa" stroke="#00bfb3" stroke-width="1.5"/>
+    <text x="390" y="36" text-anchor="middle" font-size="14" font-weight="600" fill="#00897b">🟢 索引创建过程 (Indexing)</text>
+    <rect x="30" y="50" width="110" height="50" rx="8" fill="#fff" stroke="#b2dfdb"/>
+    <text x="85" y="78" text-anchor="middle" font-size="11" fill="#333">确定原始内容</text>
+    <line x1="140" y1="75" x2="175" y2="75" stroke="#00bfb3" stroke-width="2" marker-end="url(#arrowGreen)"/>
+    <rect x="180" y="50" width="110" height="50" rx="8" fill="#fff" stroke="#b2dfdb"/>
+    <text x="235" y="78" text-anchor="middle" font-size="11" fill="#333">采集文档</text>
+    <line x1="290" y1="75" x2="325" y2="75" stroke="#00bfb3" stroke-width="2" marker-end="url(#arrowGreen)"/>
+    <rect x="330" y="50" width="110" height="50" rx="8" fill="#fff" stroke="#b2dfdb"/>
+    <text x="385" y="78" text-anchor="middle" font-size="11" fill="#333">创建文档对象</text>
+    <line x1="440" y1="75" x2="475" y2="75" stroke="#00bfb3" stroke-width="2" marker-end="url(#arrowGreen)"/>
+    <rect x="480" y="50" width="110" height="50" rx="8" fill="#fff" stroke="#b2dfdb"/>
+    <text x="535" y="78" text-anchor="middle" font-size="11" fill="#333">分析文档(分词)</text>
+    <line x1="590" y1="75" x2="625" y2="75" stroke="#00bfb3" stroke-width="2" marker-end="url(#arrowGreen)"/>
+    <rect x="630" y="50" width="110" height="50" rx="8" fill="#fff" stroke="#b2dfdb"/>
+    <text x="685" y="78" text-anchor="middle" font-size="11" fill="#333">索引文档</text>
+
+    <!-- 索引库 -->
+    <rect x="330" y="145" width="140" height="40" rx="20" fill="#00bfb3" opacity="0.15" stroke="#00bfb3" stroke-width="1.5"/>
+    <text x="400" y="170" text-anchor="middle" font-size="13" font-weight="600" fill="#00897b">📁 索引库 (Index)</text>
+    <line x1="400" y1="100" x2="400" y2="140" stroke="#00bfb3" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+    <!-- 红色部分：搜索过程 -->
+    <rect x="10" y="200" width="780" height="110" rx="10" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+    <text x="390" y="226" text-anchor="middle" font-size="14" font-weight="600" fill="#e65100">🔴 搜索索引过程 (Search)</text>
+    <rect x="30" y="240" width="110" height="50" rx="8" fill="#fff" stroke="#ffcc80"/>
+    <text x="85" y="265" text-anchor="middle" font-size="11" fill="#333">用户搜索界面</text>
+    <line x1="140" y1="265" x2="175" y2="265" stroke="#e65100" stroke-width="2" marker-end="url(#arrowRed)"/>
+    <rect x="180" y="240" width="110" height="50" rx="8" fill="#fff" stroke="#ffcc80"/>
+    <text x="235" y="265" text-anchor="middle" font-size="11" fill="#333">创建查询对象</text>
+    <line x1="290" y1="265" x2="325" y2="265" stroke="#e65100" stroke-width="2" marker-end="url(#arrowRed)"/>
+    <rect x="330" y="240" width="110" height="50" rx="8" fill="#fff" stroke="#ffcc80"/>
+    <text x="385" y="265" text-anchor="middle" font-size="11" fill="#333">执行搜索</text>
+    <line x1="440" y1="265" x2="475" y2="265" stroke="#e65100" stroke-width="2" marker-end="url(#arrowRed)"/>
+    <rect x="480" y="240" width="110" height="50" rx="8" fill="#fff" stroke="#ffcc80"/>
+    <text x="535" y="265" text-anchor="middle" font-size="11" fill="#333">渲染搜索结果</text>
+  </svg>
+</div>
+
+<h3 id="ch1-4">1.1.3 倒排索引 — ES 的核心秘密</h3>
+<p>传统方法是"根据文件找内容"（顺序扫描），而<strong>倒排索引</strong>是<strong>"根据内容（词语）找文件"</strong>，这是 ES 搜索飞快的根本原因。</p>
+
+<div class="diagram">
+  <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg">
+    <!-- 正排 vs 倒排 -->
+    <text x="200" y="25" text-anchor="middle" font-size="14" font-weight="600" fill="#888">传统方式：文件 → 内容（正排）</text>
+    <text x="600" y="25" text-anchor="middle" font-size="14" font-weight="600" fill="#00bfb3">ES 方式：内容 → 文件（倒排）</text>
+
+    <!-- 文档表 -->
+    <rect x="30" y="45" width="340" height="120" rx="8" fill="#fff" stroke="#ddd"/>
+    <text x="200" y="68" text-anchor="middle" font-size="12" font-weight="600">📄 文档集合</text>
+    <rect x="50" y="78" width="300" height="30" rx="4" fill="#f5f5f5"/><text x="65" y="97" font-size="10">Doc 1: 谷歌搜索引擎非常好用</text>
+    <rect x="50" y="110" width="300" height="30" rx="4" fill="#f5f5f5"/><text x="65" y="129" font-size="10">Doc 2: 谷歌地图之父加入Facebook</text>
+    <rect x="50" y="142" width="300" height="30" rx="4" fill="#f5f5f5"/><text x="65" y="161" font-size="10">Doc 3: 谷歌地图创始人跳槽</text>
+
+    <text x="400" y="110" text-anchor="middle" font-size="22">→</text>
+
+    <!-- 倒排索引表 -->
+    <rect x="430" y="45" width="340" height="120" rx="8" fill="#e0f7fa" stroke="#00bfb3" stroke-width="1.5"/>
+    <text x="600" y="68" text-anchor="middle" font-size="12" font-weight="600" fill="#00897b">🔍 倒排索引</text>
+    <rect x="450" y="78" width="300" height="22" rx="3" fill="#fff"/><text x="460" y="92" font-size="9.5">单词"谷歌" → 倒排列表: {Doc1, Doc2, Doc3}</text>
+    <rect x="450" y="102" width="300" height="22" rx="3" fill="#fff"/><text x="460" y="116" font-size="9.5">单词"地图" → 倒排列表: {Doc2, Doc3}</text>
+    <rect x="450" y="126" width="300" height="22" rx="3" fill="#fff"/><text x="460" y="140" font-size="9.5">单词"创始人" → 倒排列表: {Doc3}</text>
+
+    <!-- 解释 -->
+    <rect x="50" y="200" width="700" height="60" rx="8" fill="var(--highlight)" stroke="var(--accent)" stroke-width="1"/>
+    <text x="80" y="225" font-size="12" fill="var(--text)">🔑 搜索"谷歌"→ 直接从倒排索引找到 {1,2,3} → 只需读取这3个文档，<tspan font-weight="700" fill="var(--accent-dark)">无需扫描全部文档！</tspan></text>
+    <text x="80" y="248" font-size="12" fill="var(--text-secondary)">倒排列表中还记录<strong>词频(TF)</strong>等信息 → 用于搜索结果的相关性排序打分</text>
+
+    <!-- 词频标注 -->
+    <rect x="200" y="280" width="400" height="90" rx="8" fill="#fafafa" stroke="#e0e0e0"/>
+    <text x="400" y="302" text-anchor="middle" font-size="11" font-weight="600">📊 倒排索引数据结构（实际存储）</text>
+    <text x="220" y="322" font-size="10" fill="#555">单词ID | 单词 | 倒排列表(文档ID, 词频TF, 位置...)</text>
+    <line x1="220" y1="330" x2="580" y2="330" stroke="#ddd"/>
+    <text x="220" y="348" font-size="10" fill="#333">1 | 谷歌 | (1,1,&lt;1&gt;), (2,1,&lt;1&gt;), (3,1,&lt;1&gt;)</text>
+    <text x="220" y="364" font-size="10" fill="#333">2 | 地图 | (2,1,&lt;3&gt;), (3,1,&lt;3&gt;)</text>
+  </svg>
+</div>
+
+<div class="highlight-box">
+  <strong>📌 关键理解：</strong>倒排索引 = 索引(词汇表，规模小) + 文档(文档集合，规模大)。索引系统通过记录<strong>词频(TF)</strong>等信息，可以在搜索结果排序时计算查询与文档的<strong>相似度得分</strong>，得分越高排在越前面。
+</div>
+
+<h3 id="ch1-5">1.1.4 ES vs MySQL 核心对比</h3>
+<div class="comparison">
+  <div class="comparison-col">
+    <h5>🐬 MySQL（关系型数据库）</h5>
+    <ul>
+      <li class="con">LIKE 模糊查询遍历全表，数据量大时极慢</li>
+      <li class="con">不支持分词，中文组合词搜索困难</li>
+      <li class="con">不支持相关性排序</li>
+      <li class="con">适合结构化数据的精确查询</li>
+    </ul>
+    <p style="margin-top:12px;padding:8px;background:#fff3e0;border-radius:4px;font-size:0.85rem;"><strong>定位：</strong>负责<strong>存储</strong>数据</p>
+  </div>
+  <div class="comparison-col">
+    <h5>🔍 ElasticSearch（搜索引擎）</h5>
+    <ul>
+      <li class="pro">基于倒排索引，TB级数据毫秒级返回</li>
+      <li class="pro">内置中文分词（IK分词器），智能拆词</li>
+      <li class="pro">相关性评分，最相关的结果排前面</li>
+      <li class="pro">分布式实时搜索，水平扩展</li>
+    </ul>
+    <p style="margin-top:12px;padding:8px;background:#e8f5e9;border-radius:4px;font-size:0.85rem;"><strong>定位：</strong>负责<strong>搜索</strong>数据</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 经典案例：MySQL 与 ES 分工</div>
+  <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:10px;text-align:left;border-bottom:1px solid var(--border);">场景</th>
+      <th style="padding:10px;text-align:left;border-bottom:1px solid var(--border);">MySQL 表现</th>
+      <th style="padding:10px;text-align:left;border-bottom:1px solid var(--border);">ES 表现</th>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--border);">搜索"手机"</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--warning);">遍历所有记录逐一匹配</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--success);">倒排索引直接定位</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--border);">搜索"四川火锅"</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--warning);">只能全词匹配，无法拆词</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--success);">自动分词"四川"+"火锅"</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--border);">搜索"星巴克咖啡"</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--warning);">无法按相关性排序</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border);color:var(--success);">相关性评分，精确匹配排前</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="ch1-6">1.2 ES 名企使用案例</h3>
+<div class="card">
+  <ul style="padding-left:20px;line-height:2.2;">
+    <li><strong>GitHub：</strong>2013年抛弃 Solr 转向 ES，搜索 20TB 数据，含 13亿文件 和 1300亿行代码</li>
+    <li><strong>维基百科：</strong>以 ES 为核心搜索架构</li>
+    <li><strong>SoundCloud：</strong>为 1.8亿用户 提供实时精准音乐搜索</li>
+    <li><strong>百度：</strong>覆盖 20+ 业务线，最大集群 100台机器 / 200个ES节点，每天导入 30TB+ 数据</li>
+    <li><strong>新浪：</strong>分析处理 32亿条实时日志</li>
+    <li><strong>阿里：</strong>构建日志采集和分析体系</li>
+  </ul>
+</div>
+</section>
+
+<!-- ==================== 第二章 ==================== -->
+<section class="chapter" id="ch2">
+<div class="chapter-header">
+  <div class="chapter-num">Chapter 2</div>
+  <h2>ElasticSearch 安装与启动</h2>
+</div>
+
+<h3 id="ch2-1">2.1 Windows 版本安装</h3>
+<ol class="steps">
+  <li>
+    <div>
+      <strong>下载 ES 压缩包</strong>
+      <p style="color:var(--text-secondary);">官方地址：<code>https://www.elastic.co/products/elasticsearch</code>，课程使用 <strong>7.4.0</strong> 版本</p>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>解压即安装</strong>
+      <p style="color:var(--text-secondary);">Window 版解压即完成安装，目录结构包含 bin、config、lib、modules、plugins 等</p>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>安装 IK 分词器插件</strong>
+      <p style="color:var(--text-secondary);">在 <code>plugins</code> 目录下创建 <code>ik</code> 文件夹，将 elasticsearch-analysis-ik-7.4.0.zip 解压进去</p>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>启动 ES 服务</strong>
+      <p style="color:var(--text-secondary);">双击 <code>bin/elasticsearch.bat</code>，控制台输出日志</p>
+      <div class="highlight-box">
+        <strong>⚠️ 前置条件：</strong>需要 JDK 1.8+，并正确配置 JAVA_HOME 环境变量
+      </div>
+    </div>
+  </li>
+</ol>
+
+<h3 id="ch2-2">2.2 重要端口与配置</h3>
+<div class="card">
+  <table style="width:100%;border-collapse:collapse;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:10px;text-align:left;">项目</th><th style="padding:10px;text-align:left;">说明</th>
+    </tr>
+    <tr>
+      <td style="padding:10px;"><span class="tag tag-blue">9200</span></td>
+      <td style="padding:10px;">HTTP 协议的 RESTful 接口端口，浏览器访问 <code>http://localhost:9200</code></td>
+    </tr>
+    <tr>
+      <td style="padding:10px;"><span class="tag tag-orange">9300</span></td>
+      <td style="padding:10px;">TCP 通讯端口，集群节点间和 TCP Client 使用</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;"><span class="tag tag-red">内存</span></td>
+      <td style="padding:10px;">默认启动占用 1G 内存。如遇闪退/空间不足，修改 <code>config/jvm.options</code> 中 -Xmx512m 和 -Xms512m</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="ch2-3">2.3 配套工具安装</h3>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Postman — HTTP 请求模拟工具</div>
+  <p>用于发送 RESTful API 请求测试 ES，支持 GET/POST/PUT/DELETE 等所有 HTTP 方法。</p>
+  <p style="color:var(--text-secondary);font-size:0.88rem;">官网：https://www.getpostman.com</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Kibana — ES 可视化分析平台</div>
+  <p>用于搜索、查看交互存储在 ES 索引中的数据。修改 <code>config/kibana.yml</code>：</p>
+<pre><code>server.port: 5601
+elasticsearch.hosts: ["http://localhost:9200"]
+i18n.locale: "zh-CN"        # 中文界面</code></pre>
+  <p style="color:var(--text-secondary);">启动后访问：<code>http://localhost:5601</code></p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> ElasticSearch Head — Chrome 可视化管理插件</div>
+  <p>用于监视 ES 状态，通过 head 客户端和 ES 服务进行交互（创建映射、创建索引等）。</p>
+  <p style="color:var(--text-secondary);">Chrome 扩展程序 → 加载已解压的扩展程序 → 选择解压目录</p>
+</div>
+
+<h3 id="ch2-4">2.4 IK 分词器详解</h3>
+<p>IKAnalyzer 是基于 Java 的轻量级中文分词工具包，<strong>60万字/秒</strong>处理速度。</p>
+
+<div class="comparison">
+  <div class="comparison-col">
+    <h5>ik_max_word（最细粒度）</h5>
+    <p>将文本做<strong>最细粒度</strong>拆分，尽可能多地分出词汇。</p>
+<pre><code><span class="method method-get">GET</span> /_analyze
+{
+  "analyzer": "ik_max_word",
+  "text": "乒乓球明年总冠军"
+}</code></pre>
+    <p style="margin-top:8px;"><strong>结果：</strong><code>乒乓球 | 乒乓 | 球 | 明年 | 总冠军 | 冠军</code></p>
+  </div>
+  <div class="comparison-col">
+    <h5>ik_smart（粗粒度）</h5>
+    <p>做<strong>粗粒度</strong>拆分，更智能简洁。</p>
+<pre><code><span class="method method-get">GET</span> /_analyze
+{
+  "analyzer": "ik_smart",
+  "text": "乒乓球明年总冠军"
+}</code></pre>
+    <p style="margin-top:8px;"><strong>结果：</strong><code>乒乓球 | 明年 | 总冠军</code></p>
+  </div>
+</div>
+
+<div class="highlight-box">
+  <strong>💡 选型建议：</strong><strong>ik_max_word</strong> 召回率更高（搜到更多结果），<strong>ik_smart</strong> 精确度更高（搜到更准的结果）。实际开发中根据业务场景选择。
+</div>
+</section>
+
+<!-- ==================== 第三章 ==================== -->
+<section class="chapter" id="ch3">
+<div class="chapter-header">
+  <div class="chapter-num">Chapter 3</div>
+  <h2>ElasticSearch 核心概念（术语）</h2>
+</div>
+
+<h3 id="ch3-1">3.1 ES 与 MySQL 概念类比</h3>
+<p>ES 是面向<strong>文档型</strong>数据库，一条数据就是一个 <strong>JSON 文档</strong>。</p>
+
+<div class="diagram">
+  <svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- MySQL -->
+    <rect x="30" y="10" width="340" height="180" rx="12" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5"/>
+    <text x="200" y="40" text-anchor="middle" font-size="14" font-weight="700" fill="#1565c0">🐬 MySQL（关系型数据库）</text>
+    <line x1="50" y1="52" x2="350" y2="52" stroke="#bbdefb"/>
+    <text x="60" y="80" font-size="12" fill="#333">Database（数据库）</text><text x="280" y="80" font-size="12" fill="#555">→ 存放多个 Table</text>
+    <text x="60" y="108" font-size="12" fill="#333">Table（表）</text><text x="280" y="108" font-size="12" fill="#555">→ 存放多行 Row</text>
+    <text x="60" y="136" font-size="12" fill="#333">Row（行）</text><text x="280" y="136" font-size="12" fill="#555">→ 一条记录</text>
+    <text x="60" y="164" font-size="12" fill="#333">Column（列）</text><text x="280" y="164" font-size="12" fill="#555">→ 一个字段</text>
+
+    <!-- ES -->
+    <rect x="430" y="10" width="340" height="180" rx="12" fill="#e0f7fa" stroke="#00bfb3" stroke-width="1.5"/>
+    <text x="600" y="40" text-anchor="middle" font-size="14" font-weight="700" fill="#00897b">🔍 ElasticSearch（搜索引擎）</text>
+    <line x1="450" y1="52" x2="750" y2="52" stroke="#b2dfdb"/>
+    <text x="460" y="80" font-size="12" fill="#333">Index（索引）</text><text x="680" y="80" font-size="12" fill="#555">← 类似 Database</text>
+    <text x="460" y="108" font-size="12" fill="#333"><s>Type（类型）</s></text><text x="680" y="108" font-size="12" fill="#e65100">← 6.x已废弃！</text>
+    <text x="460" y="136" font-size="12" fill="#333">Document（文档）</text><text x="680" y="136" font-size="12" fill="#555">← 类似 Row</text>
+    <text x="460" y="164" font-size="12" fill="#333">Field（字段）</text><text x="680" y="164" font-size="12" fill="#555">← 类似 Column</text>
+  </svg>
+</div>
+
+<h3 id="ch3-2">3.2 五大核心概念</h3>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> ① Index（索引）</div>
+  <p>文档存储的地方，类似于 MySQL 中的 <strong>Database</strong> 概念。一个 Elasticsearch 集群可以包含多个索引。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> ② Mapping（映射）</div>
+  <p>对文档中每个<strong>字段的类型</strong>进行定义，类似于 MySQL 中的表结构定义（Schema）。</p>
+  <p style="margin-top:8px;color:var(--text-secondary);">ES 实现了<strong>动态映射（Dynamic Mapping）</strong>，大多数情况下不需要手动创建映射，ES 会自动推断字段类型。</p>
+  <div class="highlight-box">
+    <strong>📌 关键类型：</strong><code>text</code>（需分词，如文章内容）vs <code>keyword</code>（不分词，如邮箱、标签）。ES 5.x 起废弃了 string 类型。
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> ③ Document（文档）</div>
+  <p>ES 中的最小数据单元，类似于 MySQL 中的<strong>一行</strong>数据，以 JSON 格式表示。每个文档都有唯一 ID 和元数据（_index, _id, _version 等）。</p>
+<pre><code>{
+  "name": "jack",
+  "age": 18,
+  "gender": 1
+}</code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> ④ Field（字段）</div>
+  <p>相当于数据表的列，JSON 数据中的 Key。不同类型的字段有不同的使用场景。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> ⑤ Type（类型）— 已废弃</div>
+  <p><span class="tag tag-red">重要</span> ES 6.0 之前有 Type（表）的概念，但官方认为这是设计失误，<strong>6.0 之后已废弃</strong>。建立索引后直接往索引中写入文档即可。</p>
+</div>
+</section>
+
+<!-- ==================== 第四章 ==================== -->
+<section class="chapter" id="ch4">
+<div class="chapter-header">
+  <div class="chapter-num">Chapter 4</div>
+  <h2>客户端操作 — RESTful API</h2>
+</div>
+
+<p>ES 提供 RESTful 风格的 API，所有操作都通过 HTTP 请求完成。主要有三种客户端方式：<strong>elasticsearch-head 插件</strong>、<strong>Postman / Kibana 直接发请求</strong>、<strong>Java API</strong>。</p>
+
+<h3 id="ch4-1">4.1 索引（Index）CRUD 操作</h3>
+<pre><code><span class="method method-put">PUT</span>  localhost:9200/blog           <span style="color:#888;">// 创建索引</span>
+<span class="method method-get">GET</span>  localhost:9200/blog           <span style="color:#888;">// 查看索引</span>
+<span class="method method-delete">DEL</span> localhost:9200/blog           <span style="color:#888;">// 删除索引</span>
+<span class="method method-post">POST</span> localhost:9200/blog/_close    <span style="color:#888;">// 关闭索引</span>
+<span class="method method-post">POST</span> localhost:9200/blog/_open     <span style="color:#888;">// 打开索引</span></code></pre>
+
+<h3 id="ch4-2">4.2 创建索引并设置 Mapping</h3>
+<pre><code><span class="method method-put">PUT</span> localhost:9200/blog1
+{
+    "mappings": {
+        "properties": {
+            "id":      { "type": "long", "store": true, "index": true },
+            "title":   { "type": "text", "store": true, "index": true, "analyzer": "standard" },
+            "content": { "type": "text", "store": true, "index": true, "analyzer": "standard" }
+        }
+    }
+}</code></pre>
+
+<h3 id="ch4-3">4.3 Mapping 单独操作</h3>
+<pre><code><span class="method method-get">GET</span>  person/_mapping                 <span style="color:#888;">// 查询映射</span>
+<span class="method method-put">PUT</span>  person/_mapping                 <span style="color:#888;">// 添加映射</span>
+{
+  "properties": {
+    "name": { "type": "keyword" },
+    "age":  { "type": "integer" }
+  }
+}
+<span class="method method-put">PUT</span>  person/_mapping                 <span style="color:#888;">// 索引库中添加字段</span>
+{
+  "properties": { "address": { "type": "text" } }
+}</code></pre>
+
+<h3 id="ch4-4">4.4 文档（Document）CRUD</h3>
+<pre><code><span class="method method-put">PUT</span>  person/_doc/1                   <span style="color:#888;">// 添加文档(指定id)，id存在则更新</span>
+{ "name":"张三", "age":20, "address":"深圳宝安区" }
+
+<span class="method method-post">POST</span> person/_doc/                    <span style="color:#888;">// 添加文档(不指定id)，自动生成id</span>
+{ "name":"李四", "age":20, "address":"深圳南山区" }
+
+<span class="method method-get">GET</span>  person/_doc/1                   <span style="color:#888;">// 根据id查询文档</span>
+<span class="method method-get">GET</span>  person/_search                  <span style="color:#888;">// 查询所有文档</span>
+<span class="method method-delete">DEL</span> person/_doc/1                   <span style="color:#888;">// 删除文档</span></code></pre>
+
+<h3 id="ch4-5">4.5 核心查询方式对比</h3>
+
+<div class="comparison">
+  <div class="comparison-col">
+    <h5>🔍 Match 查询（全文查询）</h5>
+    <p><strong>会分析查询条件</strong>，先将查询字符串<strong>分词</strong>，再查询，求<strong>并集</strong>。</p>
+<pre><code><span class="method method-get">GET</span> person/_search
+{
+  "query": {
+    "match": {
+      "address": "深圳保税区"
+    }
+  }
+}</code></pre>
+    <p style="margin-top:8px;color:var(--text-secondary);font-size:0.85rem;">"深圳保税区" → 分词为 "深圳"、"保税区" → 包含任意一个词的文档都返回</p>
+  </div>
+  <div class="comparison-col">
+    <h5>🎯 Term 查询（词条查询）</h5>
+    <p><strong>不会分析查询条件</strong>，只有<strong>完全匹配</strong>词条时才返回。</p>
+<pre><code><span class="method method-get">GET</span> person/_search
+{
+  "query": {
+    "term": {
+      "address": { "value": "深圳南山区" }
+    }
+  }
+}</code></pre>
+    <p style="margin-top:8px;color:var(--text-secondary);font-size:0.85rem;">强调：查的是索引中的"词条"而非原文，与分词器有关</p>
+  </div>
+</div>
+
+<h3 id="ch4-6">4.6 Bool 查询（组合查询）</h3>
+<pre><code><span class="method method-get">GET</span> shangguigu/_search
+{
+  "query": {
+    "bool": {
+      "filter": {                    <span style="color:#888;">// 过滤条件（不参与评分）</span>
+        "range": { "age": { "gt": 20 } }
+      },
+      "must": {                      <span style="color:#888;">// 必须匹配（参与评分）</span>
+        "match": { "sex": "女" }
+      }
+    }
+  }
+}</code></pre>
+
+<p><strong>Bool 查询四种子句：</strong></p>
+<table style="width:100%;border-collapse:collapse;margin:12px 0;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:8px 12px;text-align:left;">子句</th><th style="padding:8px 12px;text-align:left;">说明</th>
+  </tr>
+  <tr><td style="padding:8px 12px;"><code>must</code></td><td style="padding:8px 12px;">必须匹配，贡献评分</td></tr>
+  <tr><td style="padding:8px 12px;"><code>filter</code></td><td style="padding:8px 12px;">必须匹配，<strong>不贡献评分</strong>（性能更好）</td></tr>
+  <tr><td style="padding:8px 12px;"><code>should</code></td><td style="padding:8px 12px;">应该匹配（OR 逻辑），贡献评分</td></tr>
+  <tr><td style="padding:8px 12px;"><code>must_not</code></td><td style="padding:8px 12px;">必须不匹配，不贡献评分</td></tr>
+</table>
+
+<h3 id="ch4-7">4.7 其他常用查询</h3>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Range 范围查询</div>
+  <p>支持 <code>gt</code>(大于)、<code>gte</code>(大于等于)、<code>lt</code>(小于)、<code>lte</code>(小于等于)</p>
+<pre><code><span class="method method-post">POST</span> atguigu/_search
+{ "query": { "range": { "age": { "gte": 20, "lte": 22 } } } }</code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Terms 多词条查询</div>
+<pre><code><span class="method method-post">POST</span> atguigu/_search
+{ "query": { "terms": { "age": [20, 21] } } }</code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Exists 存在性查询</div>
+<pre><code><span class="method method-post">POST</span> atguigu/_search
+{ "query": { "exists": { "field": "mail" } } }</code></pre>
+</div>
+
+<h3 id="ch4-8">4.8 高级功能</h3>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 高亮显示（Highlight）</div>
+<pre><code><span class="method method-get">GET</span> shangguigu/_search
+{
+  "query": { "match": { "name": "张三 李四" } },
+  "highlight": { "fields": { "name": {} } }
+}</code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 聚合查询（Aggregation）— 类似 SQL GROUP BY</div>
+<pre><code><span class="method method-get">GET</span> shangguigu/_search
+{
+  "aggs": {
+    "all_ages": {
+      "terms": { "field": "age.keyword" }
+    }
+  }
+}</code></pre>
+  <div class="highlight-box">
+    <strong>⚠️ 注意：</strong>对 text 类型字段聚合需要加 <code>.keyword</code> 后缀，或开启 fielddata（不推荐，消耗堆内存）。
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 分页（Pagination）</div>
+  <p><code>size</code>：每页结果数（默认10）；<code>from</code>：跳过的结果数（默认0）</p>
+<pre><code><span class="method method-get">GET</span> /_search?size=5             <span style="color:#888;">// 第1页</span>
+<span class="method method-get">GET</span> /_search?size=5&from=5       <span style="color:#888;">// 第2页</span>
+<span class="method method-get">GET</span> /_search?size=5&from=10      <span style="color:#888;">// 第3页</span></code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 指定响应字段与文档存在判断</div>
+<pre><code><span class="method method-get">GET</span>  shangguigu/_doc/1001?_source=id,name     <span style="color:#888;">// 只返回指定字段</span>
+<span class="method method-head">HEAD</span> shangguigu/_doc/1001                     <span style="color:#888;">// 判断文档是否存在(200/404)</span></code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 批量操作（_bulk）</div>
+  <p>批量插入、修改、删除，减少网络请求。格式：<strong>action行 + JSON数据行</strong>交替。</p>
+<pre><code><span class="method method-post">POST</span> _bulk
+{"create":{"_index":"atguigu","_id":2001}}
+{"id":2001,"name":"name1","age":20,"sex":"男"}
+{"create":{"_index":"atguigu","_id":2002}}
+{"id":2002,"name":"name2","age":20,"sex":"男"}
+
+<span class="method method-post">POST</span> _bulk    <span style="color:#888;">// 批量删除（delete 没有请求体）</span>
+{"delete":{"_index":"atguigu","_id":2001}}
+{"delete":{"_index":"atguigu","_id":2002}}</code></pre>
+  <div class="highlight-box">
+    <strong>📌 index vs create：</strong>index 对已有文档会<strong>覆盖</strong>（_version递增），create 对已有文档会<strong>失败</strong>抛出异常。
+  </div>
+</div>
+
+<h3 id="ch4-9">4.9 关键字搜索（URL参数方式）</h3>
+<pre><code><span class="method method-get">GET</span>  person/_search?q=name:张三</code></pre>
+</section>
+
+<!-- ==================== 第五章 ==================== -->
+<section class="chapter" id="ch5">
+<div class="chapter-header">
+  <div class="chapter-num">Chapter 5</div>
+  <h2>ElasticSearch 集群</h2>
+</div>
+
+<h3 id="ch5-1">5.1 为什么需要集群？</h3>
+<p>单节点 ES 存在三大问题：<strong>存储容量有限</strong>、<strong>单点故障无高可用</strong>、<strong>并发处理能力有限</strong>。集群中节点数量一般 3 个以上。</p>
+
+<h3 id="ch5-2">5.2 集群核心概念</h3>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Cluster（集群）</div>
+  <p>由一个或多个节点组成，共同持有数据并提供索引和搜索功能。集群由唯一名字标识，默认名为 <code>"elasticsearch"</code>。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Node（节点）</div>
+  <p>集群中的单台服务器，存储数据、参与索引和搜索。节点名默认是<strong>随机漫威角色名</strong>。通过配置集群名称加入指定集群。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Shards & Replicas（分片与副本）</div>
+  <p>索引可划分为多个<strong>分片（Shard）</strong>分散存储在不同节点上，每个分片是一个功能完善的"小索引"。</p>
+  <p>每个分片可以有多个<strong>副本（Replica）</strong>，副本从不与原分片放在同一节点。</p>
+  <div class="highlight-box">
+    <strong>分片两大作用：</strong>① 水平扩展容量；② 分布式并行操作提高吞吐量<br>
+    <strong>副本两大作用：</strong>① 故障转移高可用；② 搜索可在副本上并行执行<br>
+    <strong>⚠️ 限制：</strong>分片数量创建后<strong>不可更改</strong>（需重建索引），副本数量可以<strong>动态修改</strong>。<br>
+    <strong>默认：</strong>ES 7.x 每个索引 1 个主分片 + 1 个副本 = 2 个分片（ES 6.x 为 5+1=10）
+  </div>
+</div>
+
+<h3 id="ch5-3">5.3 集群健康状态</h3>
+
+<div class="diagram">
+  <svg viewBox="0 0 800 140" xmlns="http://www.w3.org/2000/svg">
+    <!-- Green -->
+    <rect x="20" y="15" width="240" height="110" rx="10" fill="#e8f5e9" stroke="#4caf50" stroke-width="1.5"/>
+    <circle cx="55" cy="50" r="16" fill="#4caf50"/><text x="55" y="55" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">✓</text>
+    <text x="85" y="45" font-size="13" font-weight="700" fill="#2e7d32">Green 绿色</text>
+    <text x="85" y="65" font-size="11" fill="#555">所有主分片+副本都已分配</text>
+    <text x="85" y="85" font-size="11" fill="#555">集群 100% 可用</text>
+    <text x="85" y="108" font-size="12" font-weight="600" fill="#2e7d32">✅ 一切正常</text>
+
+    <!-- Yellow -->
+    <rect x="280" y="15" width="240" height="110" rx="10" fill="#fff8e1" stroke="#ffc107" stroke-width="1.5"/>
+    <circle cx="315" cy="50" r="16" fill="#ffc107"/><text x="315" y="55" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">!</text>
+    <text x="345" y="45" font-size="13" font-weight="700" fill="#f57f17">Yellow 黄色</text>
+    <text x="345" y="65" font-size="11" fill="#555">主分片已分配，但部分副本缺失</text>
+    <text x="345" y="85" font-size="11" fill="#555">数据不丢失，但高可用性弱化</text>
+    <text x="345" y="108" font-size="12" font-weight="600" fill="#f57f17">⚠️ 需要调查</text>
+
+    <!-- Red -->
+    <rect x="540" y="15" width="240" height="110" rx="10" fill="#ffebee" stroke="#f44336" stroke-width="1.5"/>
+    <circle cx="575" cy="50" r="16" fill="#f44336"/><text x="575" y="55" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">✗</text>
+    <text x="605" y="45" font-size="13" font-weight="700" fill="#c62828">Red 红色</text>
+    <text x="605" y="65" font-size="11" fill="#555">至少一个主分片+副本全部缺失</text>
+    <text x="605" y="85" font-size="11" fill="#555">数据丢失！搜索只返回部分数据</text>
+    <text x="605" y="108" font-size="12" font-weight="600" fill="#c62828">🚨 紧急处理</text>
+  </svg>
+</div>
+
+<h3 id="ch5-4">5.4 集群搭建步骤（3节点示例）</h3>
+<ol class="steps">
+  <li>
+    <div><strong>复制三份 ES</strong>到 elasticsearch-cluster 文件夹下（node1/node2/node3）</div>
+  </li>
+  <li>
+    <div><strong>修改各节点配置</strong> elasticsearch.yml：</div>
+  </li>
+</ol>
+<pre><code><span style="color:#888;">// node1 配置</span>
+cluster.name: my-es
+node.name: node-1
+network.host: 127.0.0.1
+http.port: 9201
+transport.port: 9301
+discovery.seed_hosts: ["127.0.0.1:9302","127.0.0.1:9303"]
+cluster.initial_master_nodes: ["node-1"]
+
+<span style="color:#888;">// node2 / node3 类似，修改端口和节点名</span></code></pre>
+<ol class="steps" start="3">
+  <li><div><strong>清理旧数据</strong>：删除各 node 的 data 目录</div></li>
+  <li><div><strong>安装 IK 分词器</strong>到各节点</div></li>
+  <li><div><strong>依次启动</strong>各节点的 elasticsearch.bat</div></li>
+</ol>
+</section>
+
+<!-- ==================== 第六章 ==================== -->
+<section class="chapter" id="ch6">
+<div class="chapter-header">
+  <div class="chapter-num">Chapter 6</div>
+  <h2>高级 Java 客户端 — RestHighLevelClient</h2>
+</div>
+
+<h3 id="ch6-1">6.1 项目环境搭建</h3>
+<p>使用 Spring Boot 2.2.2 + Elasticsearch 7.4.0 RestHighLevelClient。</p>
+
+<h4>Maven 依赖</h4>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.elasticsearch.client&lt;/groupId&gt;
+    &lt;artifactId&gt;elasticsearch-rest-high-level-client&lt;/artifactId&gt;
+    &lt;version&gt;7.4.0&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.elasticsearch.client&lt;/groupId&gt;
+    &lt;artifactId&gt;elasticsearch-rest-client&lt;/artifactId&gt;
+    &lt;version&gt;7.4.0&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.elasticsearch&lt;/groupId&gt;
+    &lt;artifactId&gt;elasticsearch&lt;/artifactId&gt;
+    &lt;version&gt;7.4.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+
+<h4>配置类 — ElasticSearchConfig</h4>
+<pre><code>@Configuration
+@ConfigurationProperties(prefix = "elasticsearch")
+public class ElasticSearchConfig {
+    private String host;    <span style="color:#888;">// 127.0.0.1</span>
+    private int port;       <span style="color:#888;">// 9200</span>
+
+    @Bean
+    public RestHighLevelClient client() {
+        return new RestHighLevelClient(
+            RestClient.builder(new HttpHost(host, port, "http"))
+        );
+    }
+    <span style="color:#888;">// getters/setters...</span>
+}</code></pre>
+
+<h3 id="ch6-2">6.2 索引操作（Java API）</h3>
+<pre><code><span style="color:#888;">// 1. 创建索引</span>
+IndicesClient indicesClient = client.indices();
+CreateIndexRequest request = new CreateIndexRequest("abc");
+CreateIndexResponse response = indicesClient.create(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 2. 创建索引 + 设置 Mapping</span>
+CreateIndexRequest request = new CreateIndexRequest("aaa");
+String mapping = "{\"properties\": { \"name\": {\"type\": \"keyword\"}, ... }}";
+request.mapping(mapping, XContentType.JSON);
+indicesClient.create(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 3. 查询索引</span>
+GetIndexRequest request = new GetIndexRequest("aaa");
+GetIndexResponse response = indicesClient.get(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 4. 判断索引是否存在</span>
+indicesClient.exists(new GetIndexRequest("aaa"), RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 5. 删除索引</span>
+indicesClient.delete(new DeleteIndexRequest("abc"), RequestOptions.DEFAULT);</code></pre>
+
+<h3 id="ch6-3">6.3 文档操作（Java API）</h3>
+<pre><code><span style="color:#888;">// 1. 添加文档</span>
+IndexRequest request = new IndexRequest("person").id("1");
+request.source("{\"name\":\"张三\",\"age\":20}", XContentType.JSON);
+IndexResponse response = client.index(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 2. 查询文档</span>
+GetRequest request = new GetRequest("person", "1");
+GetResponse response = client.get(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 3. 更新文档（id存在即更新）</span>
+UpdateRequest request = new UpdateRequest("person", "1");
+request.doc("{\"age\":21}", XContentType.JSON);
+client.update(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 4. 删除文档</span>
+DeleteRequest request = new DeleteRequest("person", "1");
+client.delete(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 5. 批量操作</span>
+BulkRequest bulkRequest = new BulkRequest();
+bulkRequest.add(new IndexRequest("person").id("1").source(...));
+bulkRequest.add(new IndexRequest("person").id("2").source(...));
+client.bulk(bulkRequest, RequestOptions.DEFAULT);</code></pre>
+
+<h3 id="ch6-4">6.4 查询操作（Java API）</h3>
+<pre><code><span style="color:#888;">// 1. 查询所有</span>
+SearchRequest request = new SearchRequest("person");
+SearchSourceBuilder builder = new SearchSourceBuilder();
+builder.query(QueryBuilders.matchAllQuery());
+request.source(builder);
+SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+
+<span style="color:#888;">// 2. Match 查询</span>
+builder.query(QueryBuilders.matchQuery("address", "深圳"));
+
+<span style="color:#888;">// 3. Term 查询</span>
+builder.query(QueryBuilders.termQuery("name", "张三"));
+
+<span style="color:#888;">// 4. Bool 组合查询</span>
+BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+boolQuery.must(QueryBuilders.matchQuery("sex", "女"));
+boolQuery.filter(QueryBuilders.rangeQuery("age").gt(20));
+
+<span style="color:#888;">// 5. 范围查询</span>
+builder.query(QueryBuilders.rangeQuery("age").gte(20).lte(30));
+
+<span style="color:#888;">// 6. 分页 + 排序</span>
+builder.from(0).size(10);
+builder.sort("age", SortOrder.DESC);
+
+<span style="color:#888;">// 7. 高亮</span>
+HighlightBuilder highlightBuilder = new HighlightBuilder();
+highlightBuilder.field("name");
+builder.highlighter(highlightBuilder);
+
+<span style="color:#888;">// 8. 聚合</span>
+builder.aggregation(AggregationBuilders.terms("age_group").field("age"));</code></pre>
+</section>
+
+<!-- ==================== 第七章 ==================== -->
+<section class="chapter" id="ch7">
+<div class="chapter-header">
+  <div class="chapter-num">Chapter 7</div>
+  <h2>Spring Data Elasticsearch</h2>
+</div>
+
+<h3 id="ch7-1">7.1 简介</h3>
+<p>Spring Data Elasticsearch 基于 Spring Data API <strong>简化 ES 操作</strong>，将原始客户端 API 进行封装。类似于 Spring Data JPA 对数据库操作的简化——<strong>定义接口即可完成 CRUD</strong>，几乎不用写实现。</p>
+
+<div class="highlight-box">
+  <strong>📌 重要变化：</strong>新版本中 <code>ElasticsearchRestTemplate</code> 替代了 <code>ElasticsearchTemplate</code>（后者基于即将废弃的 TransportClient）。配置类需继承 <code>AbstractElasticsearchConfiguration</code>。
+</div>
+
+<h3 id="ch7-2">7.2 Maven 依赖</h3>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-data-elasticsearch&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+
+<h3 id="ch7-3">7.3 实体类注解</h3>
+<pre><code>@Document(indexName = "item", shards = 1, replicas = 1)
+public class Item {
+    @Id
+    private Long id;
+
+    @Field(type = FieldType.Text, analyzer = "ik_max_word")
+    private String title;         <span style="color:#888;">// 标题 — 需分词</span>
+
+    @Field(type = FieldType.Keyword)
+    private String category;      <span style="color:#888;">// 分类 — 不分词</span>
+
+    @Field(type = FieldType.Keyword)
+    private String brand;         <span style="color:#888;">// 品牌 — 不分词</span>
+
+    @Field(type = FieldType.Double)
+    private Double price;         <span style="color:#888;">// 价格</span>
+
+    @Field(index = false, type = FieldType.Keyword)
+    private String images;        <span style="color:#888;">// 图片地址 — 不索引</span>
+}</code></pre>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 三大注解说明</div>
+  <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:8px 12px;text-align:left;">注解</th><th style="padding:8px 12px;text-align:left;">作用域</th><th style="padding:8px 12px;text-align:left;">属性</th>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;"><code>@Document</code></td>
+      <td style="padding:8px 12px;">类</td>
+      <td style="padding:8px 12px;">indexName(索引名), shards(分片数), replicas(副本数)</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;"><code>@Id</code></td>
+      <td style="padding:8px 12px;">字段</td>
+      <td style="padding:8px 12px;">标记为主键</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;"><code>@Field</code></td>
+      <td style="padding:8px 12px;">字段</td>
+      <td style="padding:8px 12px;">type(字段类型), index(是否索引), store(是否存储), analyzer(分词器)</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="ch7-4">7.4 Repository 接口 — CRUD 零代码</h3>
+<p>只需要定义一个接口继承 <code>ElasticsearchRepository</code>，即可自动拥有全部 CRUD 方法：</p>
+<pre><code>public interface ItemRepository extends ElasticsearchRepository&lt;Item, Long&gt; {
+    <span style="color:#888;">// 继承的方法自动实现：save(), saveAll(), findById(), findAll(), deleteById(), count()...</span>
+}</code></pre>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> Repository 自带方法</div>
+<pre><code><span style="color:#888;">// 新增/修改（id存在则修改，不存在则新增）</span>
+itemRepository.save(item);
+
+<span style="color:#888;">// 批量新增</span>
+itemRepository.saveAll(list);
+
+<span style="color:#888;">// 根据id查询</span>
+Optional&lt;Item&gt; optional = itemRepository.findById(2L);
+
+<span style="color:#888;">// 查询全部</span>
+Iterable&lt;Item&gt; all = itemRepository.findAll();
+
+<span style="color:#888;">// 根据id删除</span>
+itemRepository.deleteById(1L);</code></pre>
+</div>
+
+<h3 id="ch7-5">7.5 索引创建（使用 Template）</h3>
+<pre><code>@Autowired
+private ElasticsearchRestTemplate elasticsearchTemplate;
+
+<span style="color:#888;">// 创建索引 + 自动映射（根据 @Document 和 @Field 注解）</span>
+elasticsearchTemplate.createIndex(Item.class);
+elasticsearchTemplate.putMapping(Item.class);</code></pre>
+
+<h3 id="ch7-6">7.6 Spring Data Elasticsearch vs RestHighLevelClient</h3>
+<div class="comparison">
+  <div class="comparison-col">
+    <h5>Spring Data Elasticsearch</h5>
+    <ul>
+      <li class="pro">注解驱动，声明式开发</li>
+      <li class="pro">继承 Repository 即可 CRUD</li>
+      <li class="pro">与 Spring 生态无缝集成</li>
+      <li class="con">复杂查询灵活度有限</li>
+    </ul>
+  </div>
+  <div class="comparison-col">
+    <h5>RestHighLevelClient</h5>
+    <ul>
+      <li class="pro">完全控制查询细节</li>
+      <li class="pro">支持所有 ES API</li>
+      <li class="pro">适合复杂搜索场景</li>
+      <li class="con">代码量较大</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- ===== 总结 ===== -->
+<section class="chapter" id="summary">
+<div class="chapter-header">
+  <div class="chapter-num">Summary</div>
+  <h2>课程总结与学习路径</h2>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="dot"></span> 7章学习路线图</div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;">
+    <div style="flex:1;min-width:140px;padding:16px;background:var(--highlight);border-radius:8px;text-align:center;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent);">①</div>
+      <div style="font-weight:600;margin:4px 0;">概念理解</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);">全文检索/倒排索引/ES vs MySQL</div>
+    </div>
+    <div style="flex:1;min-width:140px;padding:16px;background:var(--highlight);border-radius:8px;text-align:center;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent);">②</div>
+      <div style="font-weight:600;margin:4px 0;">环境搭建</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);">ES/IK/Kibana/Head安装配置</div>
+    </div>
+    <div style="flex:1;min-width:140px;padding:16px;background:var(--highlight);border-radius:8px;text-align:center;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent);">③</div>
+      <div style="font-weight:600;margin:4px 0;">核心术语</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);">Index/Mapping/Document/Field</div>
+    </div>
+    <div style="flex:1;min-width:140px;padding:16px;background:var(--highlight);border-radius:8px;text-align:center;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent);">④</div>
+      <div style="font-weight:600;margin:4px 0;">REST API</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);">CRUD/查询/聚合/高亮/批量</div>
+    </div>
+    <div style="flex:1;min-width:140px;padding:16px;background:var(--highlight);border-radius:8px;text-align:center;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent);">⑤</div>
+      <div style="font-weight:600;margin:4px 0;">集群架构</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);">分片/副本/高可用/健康状态</div>
+    </div>
+    <div style="flex:1;min-width:140px;padding:16px;background:var(--highlight);border-radius:8px;text-align:center;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent);">⑥</div>
+      <div style="font-weight:600;margin:4px 0;">Java客户端</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);">RestHighLevelClient 实战</div>
+    </div>
+    <div style="flex:1;min-width:140px;padding:16px;background:var(--highlight);border-radius:8px;text-align:center;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent);">⑦</div>
+      <div style="font-weight:600;margin:4px 0;">Spring Data</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);">注解驱动/Repository零代码</div>
+    </div>
+  </div>
+</div>
+
+<div class="highlight-box" style="margin-top:24px;">
+  <strong>🎯 核心要点回顾：</strong><br>
+  1. ES 的核心是 <strong>倒排索引</strong> — "内容→文档" 的映射结构<br>
+  2. ES = <strong>分布式 + 近实时 + RESTful API + 全文检索</strong><br>
+  3. MySQL 负责<strong>存储</strong>，ES 负责<strong>搜索</strong>，各司其职<br>
+  4. <strong>IK 分词器</strong>是中文搜索的必需品<br>
+  5. 集群通过<strong>分片+副本</strong>实现高可用和水平扩展<br>
+  6. 开发中优先用 <strong>Spring Data Elasticsearch</strong>，复杂查询用 <strong>RestHighLevelClient</strong>
+</div>
+</section>
+
+</div><!-- /content -->
+</main><!-- /main -->
+
+<script>
+// ===== 构建侧边栏导航 =====
+const chapters = [
+  { id: 'ch1', num: '一', title: 'ElasticSearch 简介', sections: [
+    { id: 'ch1-1', title: '什么是 ElasticSearch' },
+    { id: 'ch1-2', title: '什么是全文检索' },
+    { id: 'ch1-3', title: '全文检索实现流程' },
+    { id: 'ch1-4', title: '倒排索引核心机制' },
+    { id: 'ch1-5', title: 'ES vs MySQL 对比' },
+    { id: 'ch1-6', title: '名企使用案例' }
+  ]},
+  { id: 'ch2', num: '二', title: '安装与启动', sections: [
+    { id: 'ch2-1', title: 'Windows 版本安装' },
+    { id: 'ch2-2', title: '端口与配置' },
+    { id: 'ch2-3', title: '配套工具安装' },
+    { id: 'ch2-4', title: 'IK 分词器详解' }
+  ]},
+  { id: 'ch3', num: '三', title: '核心概念与术语', sections: [
+    { id: 'ch3-1', title: 'ES 与 MySQL 概念类比' },
+    { id: 'ch3-2', title: '五大核心概念' }
+  ]},
+  { id: 'ch4', num: '四', title: '客户端操作 REST API', sections: [
+    { id: 'ch4-1', title: '索引 CRUD' },
+    { id: 'ch4-2', title: '创建索引 + Mapping' },
+    { id: 'ch4-3', title: 'Mapping 单独操作' },
+    { id: 'ch4-4', title: '文档 CRUD' },
+    { id: 'ch4-5', title: 'Match vs Term 查询' },
+    { id: 'ch4-6', title: 'Bool 组合查询' },
+    { id: 'ch4-7', title: '其他查询方式' },
+    { id: 'ch4-8', title: '高级功能' },
+    { id: 'ch4-9', title: '关键字搜索' }
+  ]},
+  { id: 'ch5', num: '五', title: 'ES 集群', sections: [
+    { id: 'ch5-1', title: '为什么需要集群' },
+    { id: 'ch5-2', title: '核心概念' },
+    { id: 'ch5-3', title: '集群健康状态' },
+    { id: 'ch5-4', title: '集群搭建步骤' }
+  ]},
+  { id: 'ch6', num: '六', title: '高级 Java 客户端', sections: [
+    { id: 'ch6-1', title: '项目环境搭建' },
+    { id: 'ch6-2', title: '索引操作' },
+    { id: 'ch6-3', title: '文档操作' },
+    { id: 'ch6-4', title: '查询操作' }
+  ]},
+  { id: 'ch7', num: '七', title: 'Spring Data ES', sections: [
+    { id: 'ch7-1', title: '简介' },
+    { id: 'ch7-2', title: 'Maven 依赖' },
+    { id: 'ch7-3', title: '实体类注解' },
+    { id: 'ch7-4', title: 'Repository CRUD' },
+    { id: 'ch7-5', title: '索引创建' },
+    { id: 'ch7-6', title: '两种方式对比' }
+  ]},
+  { id: 'summary', num: '★', title: '课程总结', sections: [] }
+];
+
+const nav = document.getElementById('sidebarNav');
+chapters.forEach(ch => {
+  const div = document.createElement('div');
+  div.className = 'nav-chapter';
+  div.innerHTML = `
+    <div class="nav-chapter-title" data-chapter="${ch.id}">
+      <span class="icon">${ch.num}</span>${ch.title}
+    </div>
+    <div class="nav-sections">
+      ${ch.sections.map(s => `<a href="#${s.id}" class="nav-section" data-section="${s.id}">${s.title}</a>`).join('')}
+    </div>
+  `;
+  div.querySelector('.nav-chapter-title').addEventListener('click', function(e) {
+    if (e.target.closest('.nav-section')) return;
+    div.classList.toggle('open');
+    if (ch.sections.length === 0) {
+      document.getElementById(ch.id).scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+  nav.appendChild(div);
+});
+
+// ===== 滚动监听 — 高亮当前章节 =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.nav-chapter-title, .nav-section').forEach(el => el.classList.remove('active'));
+      const id = entry.target.id;
+      const navEl = document.querySelector(`[data-chapter="${id}"]`) || document.querySelector(`[data-section="${id}"]`);
+      if (navEl) navEl.classList.add('active');
+      // 展开对应章节
+      const chapterDiv = navEl?.closest('.nav-chapter');
+      if (chapterDiv) chapterDiv.classList.add('open');
+    }
+  });
+}, { rootMargin: '-80px 0px -60% 0px' });
+
+document.querySelectorAll('.chapter, [id^="ch"][id$="-"]').forEach(el => observer.observe(el));
+
+// ===== 主题切换 =====
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn = document.querySelector('.theme-toggle');
+  const current = html.getAttribute('data-theme');
+  if (current === 'dark') {
+    html.removeAttribute('data-theme');
+    btn.textContent = '🌙 暗色';
+    localStorage.setItem('es-lecture-theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    btn.textContent = '☀️ 亮色';
+    localStorage.setItem('es-lecture-theme', 'dark');
+  }
+}
+
+// 初始化主题
+if (localStorage.getItem('es-lecture-theme') === 'dark') {
+  document.documentElement.setAttribute('data-theme', 'dark');
+  document.querySelector('.theme-toggle').textContent = '☀️ 亮色';
+}
+
+// ===== 默认展开第一章 =====
+document.querySelector('.nav-chapter').classList.add('open');
+document.querySelector('.nav-chapter-title').classList.add('active');
+</script>
+
+</body>
+</html>
