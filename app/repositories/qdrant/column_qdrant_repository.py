@@ -1,7 +1,7 @@
 from dataclasses import asdict
 
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.http.models import VectorParams, Distance, PointStruct
+from qdrant_client.http.models import VectorParams, Distance, PointStruct, QueryResponse
 
 from app.conf.app_config import app_config
 from app.entities.column_info import ColumnInfo
@@ -38,3 +38,10 @@ class ColumnQdrantRepository:
                 payload=asdict(payload)
             ) for id, embeding, payload in batch]
             await self.client.upsert(collection_name=self.coll_name, points=points)
+
+    async def search(self, embedding: list[float], score_threshold: float = 0.6, limit: int = 10) -> list[ColumnInfo]:
+        result: QueryResponse = \
+            await self.client.query_points(collection_name=self.coll_name, query=embedding,
+                                           score_threshold=score_threshold, limit=limit)
+        # **point.payload  解构表达式 将Qdrant中payload字典{id:"abc"}转为id="abc"
+        return [ColumnInfo(**point.payload) for point in result.points]

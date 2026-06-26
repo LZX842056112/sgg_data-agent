@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-from binascii import a2b_qp
 from pathlib import Path
 
 from app.clients.embedding_client_manager import embedding_client_manager
@@ -43,7 +42,7 @@ async def build(meta_config_path: Path):
         # 4. 调用业务对象 build 函数 完成元数据知识库的构建
         await meta_knowledge_service.build(meta_config_path)
 
-        # 5.TODO 关闭连接（数据库、ES、Qdrant）
+        # 5. 关闭连接（数据库、ES、Qdrant）
         await dw_mysql_client_manager.close()
         await meta_mysql_client_manager.close()
         await qdrant_client_manager.close()
