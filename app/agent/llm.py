@@ -11,8 +11,8 @@ llm = init_chat_model(
 )
 
 if __name__ == '__main__':
-    result = llm.invoke("请介绍自己")
-    print(result.content)
+    # result = llm.invoke("请介绍自己")
+    # print(result.content)
 
     async def test_llm():
         result = await llm.ainvoke("请介绍自己")

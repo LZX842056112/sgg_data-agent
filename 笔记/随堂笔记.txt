@@ -1,0 +1,122 @@
+
+离线构建元数据知识库：
+    1.定义脚本build_meta_knowledge.py  人工配置元信息（指标跟表信息）
+      客户端初始化（MySQL、qdrant、ES、embding）
+      创建业务层需要的依赖对象（dw库持久层、meta库持久层、字段qdrant持久层、指标qdrant持久层、embeding客户端
+      ）
+      TIPS：异步方式获取不同库Session
+      通过构造函数将对象注入到Service
+    2.Service
+        解析yaml文件
+        处理表格信息
+            保存表、字段到meta数据库
+            字段信息（名称、描述、别名）存入qdrant
+            字段取值 存入ES
+        处理指标信息
+            保存指标，字段指标关系 到 meta 数据库
+            指标信息（名称、描述、别名）存入qdrant
+
+    3.关闭连接释放资源
+
+
+问数智能体实现：
+
+一、基于Langgraph构建工作流节点 Langgraph包含三个关键组件
+	状态（共享数据结构、节点可以进行读写）
+	
+	节点（函数（同步或异步）、参数：state ） 
+	
+	边（条件分支或固定转换）
+	
+	runtime(上下文)
+
+
+二、需求：LangGraph流式调用。在前端对话框中 实时将每个步骤执行状态 转换SQL后查询SQL结果 实时返回。
+
+	1.执行graph调用 使用 astream()函数
+    2.指定流式输出模式 astream(input=xxx, stream_mode ="custom")
+	3.前后端约定 
+		执行步骤状态 {"type":"progress", "step":"合并召回信息", "status":"running"} status取值：running success error 
+		SQL执行结果  {"type":"result" ,"data": SQL返回结果}
+	4.节点中通过get_stream_write() 或者 runtime 获取流写入器 writer("自定义数据")
+
+
+
+三、需求：工作流节点 需要获取操作不同库（MySQL，ES，Qdrant，Embeding）对象
+	在节点函数内通过 runtime对象 包含：context上下文（存放静态依赖，各个节点只读持久层对象）
+	
+	1.定义runtime对象中上下文数据结构：采用三种方式 1.dataclass 2.typeddict 3.pydantic
+	2.创建graph 通过 context_schema指定上下文数据结构对象
+	3.调用graph astream(input=state, context = "runtime中上下文对象", stream_mode ="custom")
+	4.节点内通过参数runtime获取
+		3.1 可以获取到上下文context
+		3.2 可以获取store持久化
+		3.3 可以获取到stream_writer
+        
+四、准备工作
+    1.创建大语言模型对象llm
+    2.准备节点中所需要提示词，提供函数导入指定提示词
+    3.节点执行需要静态依赖（各种持久层对象）
+
+
+节点，共计12个节点
+    抽取关键字：
+       1.调用jieba分词器抽取关键词列表
+       2.更新state
+    召回字段信息
+        1.基于原query通过llm进行扩展
+        2.去重拼接 抽取关键词列表
+        3.遍历关键词列表，根据每个关键词进行向量检索 将得分大于0.6的向量点
+        4.获取可能需要字段信息列表
+        5.更新state中“retrieved_columns”
+    召回指标信息： 目的获取回答用户问题所需要指标列表，为了给llm提供上下文所需要字段、指标
+        1.从state 获取“抽取关键字”节点 用户问题
+        2.调用llm对问题进行扩展，得到可能需要指标名称列表，得到最终关键词列表
+        3.遍历关键词列表，对每个关键词转向量，执行指标向量检索
+        4.检索得到指标信息通过字典去重
+        5.更新state中“retrieved_metrics”
+    召回字段取值：目的获取用户问题中，真实存在于数仓维度表中正确字段取值 确保where条件的取值正确
+        1.从state 获取“抽取关键字”节点 用户问题
+        2.调用llm对问题进行扩展，得到可能需要的字段取值，得到最终关键词列表
+        3.遍历关键词列表，执行ES全文检索 采用match查询
+        4.检索得到“字段取值”通过字典去重
+        5.更新state中“retrieved_values”
+        
+        #查看字段取值索引库映射信息
+        GET data-agent-column/_mapping
+
+
+        #查询索引库中文档列表 默认分页 from=起始文档offset size=每页数量
+        POST data-agent-column/_search
+        {
+          "from":0,
+          "size": 75
+        }
+
+
+        #条件检索 采用全文查询match 特点：先对文本进行分词，根据分词后词条进行检索
+        POST data-agent-column/_search
+        {
+          "from":0,
+          "size": 10,
+          "query": {
+            "match": {
+              "value": "广东地区"
+            }
+          },
+          "min_score": 0.6
+        }
+    合并召回信息节点：
+        1.从已召回数据中获取所有字段信息 考虑重复问题 注意：字段实例值
+        2.补齐主外键字段信息
+        3.封装表信息state
+        持久层查询：
+            根据字段ID查询字段信息
+            根据表ID查询主外键字段列表
+            根据表ID查询表信息
+
+
+
+
+
+
