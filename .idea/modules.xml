@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../PythonProject/.idea/PythonProject.iml" filepath="$PROJECT_DIR$/../PythonProject/.idea/PythonProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../data-agent-fronted/.idea/data-agent-fronted.iml" filepath="$PROJECT_DIR$/../data-agent-fronted/.idea/data-agent-fronted.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/sgg_data-agent.iml" filepath="$PROJECT_DIR$/.idea/sgg_data-agent.iml" />
     </modules>
   </component>

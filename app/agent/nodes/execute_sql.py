@@ -1,4 +1,3 @@
-from langgraph.config import get_stream_writer
 from langgraph.runtime import Runtime
 
 from app.agent.context import DataAgentContext
@@ -7,14 +6,19 @@ from app.core.log import logger
 
 
 async def execute_sql(state: DataAgentState, runtime: Runtime[DataAgentContext]):
-    # 1.获取流写入器对象
-    write = runtime.stream_writer
-    write({"type": "progress", "step": "执行SQL", "status": "running"})
-
-    # 2.具体逻辑
+    writer = runtime.stream_writer
+    writer({"type": "progress", "step": "执行SQL", "status": "running"})
     try:
-        write({"type": "progress", "step": "执行SQL", "status": "success"})
+        # 1.获取state中SQL语句
+        sql = state["sql"]
+        # 2.调用数仓持久层执行SQL查询
+        dw_mysql_repository = runtime.context["dw_mysql_repository"]
+        data = await dw_mysql_repository.execute_sql(sql)
+        writer({"type": "progress", "step": "执行SQL", "status": "success"})
+        logger.info(f"执行SQL结果：{data}")
+        # 3.将查询结果实时返回
+        writer({"type": "result", "data": data})
     except Exception as e:
-        logger.error(f"执行SQL发生异常：{e}")
-        write({"type": "progress", "step": "执行SQL", "status": "error"})
+        writer({"type": "progress", "step": "执行SQL", "status": "error"})
+        logger.error(f"执行SQL异常：{str(e)}")
         raise

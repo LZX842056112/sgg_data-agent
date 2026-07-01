@@ -1,26 +1,20 @@
-import asyncio
-
 import jieba.analyse
-from langgraph.config import get_stream_writer
 from langgraph.runtime import Runtime
-
 from app.agent.context import DataAgentContext
 from app.agent.state import DataAgentState
 from app.core.log import logger
 
 
 async def extract_keywords(state: DataAgentState, runtime: Runtime[DataAgentContext]):
-    """Graph入口节点，将用户问题进行抽取关键词"""
-    # 写回当前节点自定义数据
-    query = state["query"]
-    # 1.获取流写入器对象 方式一：通过函数get_stream_writer获取 方式二：通过Runtime获取
-    writer = get_stream_writer()
-    # 2.写自定义数据 正在处理中
-    writer({"type": "progress", "step": "抽取关键字", "status": "running"})
+    # 获取流式输出器
+    writer = runtime.stream_writer
+    # 输出进度状态信息
+    # writer("抽取关键字")
+    writer({"stage": "抽取关键字"})
     try:
-
-        # 3. 使用jieba分词器进行分词
-        # 3.1 创建指定词性元组
+        # 获取用户查询问题
+        query = state["query"]
+        # 定义返回指定词性的元组
         allow_pos = (
             "n",  # 名词: 数据、服务器、表格
             "nr",  # 人名: 张三、李四
@@ -35,15 +29,17 @@ async def extract_keywords(state: DataAgentState, runtime: Runtime[DataAgentCont
             "i",  # 成语
             "l",  # 常用固定短语
         )
-        # 3.2 对用户问题进行分词
-        keywords = jieba.analyse.extract_tags(query, topK=10, allowPOS=allow_pos)
-        # 4. 拼接原query得到关键词列表（去重）
+
+        # 使用jieba从用户的查询信息中提取关键，基于TF-IDF算法实现
+        keywords: list[str] = jieba.analyse.extract_tags(query, allowPOS=allow_pos)
+
+        # 避免在使用jieba进行题词后，对关键信息出现丢失请求，将查询query添加到keywords中
+        # 同样也要避免出现提取关键字后和原问题重复的情况，需要进行去重
         keywords = list(set(keywords + [query]))
-        writer({"type": "progress", "step": "抽取关键字", "status": "success"})
-        logger.info(f"抽取关键字成功:{keywords}")
-        # 5.更新state节点数据
+        logger.info(f"抽取关键字：{keywords}")
+        # 获取用户查询的关键字列表后，返回进行下一步处理即可
         return {"keywords": keywords}
+
     except Exception as e:
-        logger.error(f"抽取关键字节点执行异常:{e}")
-        writer({"type": "progress", "step": "抽取关键字", "status": "error"})
+        logger.error(f"抽取关键字异常：{str(e)}")
         raise

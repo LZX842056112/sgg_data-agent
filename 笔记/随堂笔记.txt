@@ -60,22 +60,22 @@
 
 
 节点，共计12个节点
-    抽取关键字：
+    ①抽取关键字：
        1.调用jieba分词器抽取关键词列表
        2.更新state
-    召回字段信息
+    ②召回字段信息
         1.基于原query通过llm进行扩展
         2.去重拼接 抽取关键词列表
         3.遍历关键词列表，根据每个关键词进行向量检索 将得分大于0.6的向量点
         4.获取可能需要字段信息列表
         5.更新state中“retrieved_columns”
-    召回指标信息： 目的获取回答用户问题所需要指标列表，为了给llm提供上下文所需要字段、指标
+    ③召回指标信息： 目的获取回答用户问题所需要指标列表，为了给llm提供上下文所需要字段、指标
         1.从state 获取“抽取关键字”节点 用户问题
         2.调用llm对问题进行扩展，得到可能需要指标名称列表，得到最终关键词列表
         3.遍历关键词列表，对每个关键词转向量，执行指标向量检索
         4.检索得到指标信息通过字典去重
         5.更新state中“retrieved_metrics”
-    召回字段取值：目的获取用户问题中，真实存在于数仓维度表中正确字段取值 确保where条件的取值正确
+    ④召回字段取值：目的获取用户问题中，真实存在于数仓维度表中正确字段取值 确保where条件的取值正确
         1.从state 获取“抽取关键字”节点 用户问题
         2.调用llm对问题进行扩展，得到可能需要的字段取值，得到最终关键词列表
         3.遍历关键词列表，执行ES全文检索 采用match查询
@@ -106,7 +106,7 @@
           },
           "min_score": 0.6
         }
-    合并召回信息节点：
+    ⑤合并召回信息节点：
         1.从已召回数据中获取所有字段信息 考虑重复问题 注意：字段实例值
         2.补齐主外键字段信息
         3.封装表信息state
@@ -114,9 +114,71 @@
             根据字段ID查询字段信息
             根据表ID查询主外键字段列表
             根据表ID查询表信息
+    ⑥并行过滤-过滤指标信息： 将回答问题无关的指标排除
+        1.调用llm获取所需指标列表  注意点：将列表/对象等入参转为yaml
+            yaml.dump(对象, allow_unicode=True, sort_keys=False)
+        2.遍历指标列表 判断 将不需要删除
+            常规遍历中禁止删除元素 解决办法：采用[:] 对原列表拷贝得到副本，遍历是副本，删除的原列表
+        3.更新state 中“metric_infos”
+        
+    ⑦并行过滤-过滤表信息： 将回答问题无关的表或表中字段排除 
+        1.调用llm获取所需表名称（包含字段名称列表）  注意点：将列表/对象等入参转为yaml
+            yaml.dump(对象, allow_unicode=True, sort_keys=False)
+        2.遍历表信息列表 判断 将不需要删除
+            常规遍历中禁止删除元素 解决办法：采用[:] 对原列表拷贝得到副本，遍历是是副本，删除的原列表
+        3.更新state 中“table_infos”
+    ⑧添加额外上下文
+        1.日期信息 当天年月日、星期数、季度
+        2.数仓数据库信息：版本、方言
+        3.更新state 中"date_info"、"db_info"
+    ⑨生成SQL
+        1.上下文：用户问题、表信息、指标信息、日期信息、DB信息所需要信息
+        2.调用大模型生成SQL 结果为纯文本SQL 故采用StrOutputParser()
+        3.更新state 中 "sql"
+    ⑩验证SQL
+        1.通过数据库提供执行计划关键字：explain+SQL
+        2.有异常 更新state中"error"
+        3.没有异常，执行SQL节点
+    11.修复SQL
+        1.上下文：用户问题、表信息、指标信息、日期信息、DB信息、原SQL、错误 所需要信息
+        2.调用大模型生成SQL 结果为纯文本SQL 故采用StrOutputParser()
+        3.更新state 中 "sql"
+    12.执行SQL
+        1.获取stateSQL语句
+        2.调用数仓持久层执行SQL 结果[{},{},{},{}]
+            [dict(row_mapping) for row_mapping in result.mappings().fetchall()]
+        3.将数据实时返回前端：
+            write({"type": "result", "data": data})
 
-
-
-
-
-
+FastAPI
+    1.创建fastapi实例 自定义路由 注册路由
+        app=FastAPI()
+        xxx_router = APIRouter()
+        @xxx_router.get/put/delete/post
+        app.include_router(xxx_router)
+        查询参数：通过函数参数获取
+        路径参数: /{param}  通过函数参数获取
+        请求体：
+            设计pydantic创建结构 设计属性
+            函数参数（对象名称:对象类型）
+    2.启动服务
+        fastapi dev
+        uvicorn main:app --reload
+    3.fastAPI流式数据+SSE实时推送给客户端
+        python yield关键字 用于将普通函数变为生成器  核心：暂停、返回、下次继续执行
+        路由接口返回StreamingResponse(xx_service.xx_xx(), media_type="text/event-stream")
+        基于SSE协议：
+            响应头 Content-Type: text/event-stream
+            数据响应格式 data: 数据\n\n
+    4.fastAPI生命周期 lifespan  需求：项目启动完成各种客户端管理器初始化，项目停止将各个中间件链接关闭
+        ①声明lifespan函数
+            @asynccontextmanager
+            async def lifespan(app: FastAPI):
+                # 启动执行逻辑
+                yield
+                # 应用关闭执行代码
+        ②为fastAPI实例指定生命周期函数对象
+            app = FastAPI(lifespan=lifespan)
+    5.fastAPI依赖注入 “dependency” 作用：依赖解耦
+        
+        

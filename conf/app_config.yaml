@@ -42,4 +42,4 @@ es:
 
 llm:
   model_name: deepseek-v4-pro
-  api_key: <deepseek_api_key>
+  api_key: sk-c3043bdd170c42fda7c98071d04b5cf9

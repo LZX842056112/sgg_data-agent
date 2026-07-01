@@ -1,4 +1,3 @@
-import asyncio
 from contextvars import ContextVar
 
 # 定义上下文变量request_id_ctx_var，用于在异步/多请求场景下存储和获取当前请求的唯一标识request_id

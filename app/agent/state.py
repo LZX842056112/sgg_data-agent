@@ -28,20 +28,31 @@ class MetricInfoState(TypedDict):
     alias: list[str]
 
 
+class DateInfoState(TypedDict):
+    date: str
+    weekday: str
+    quarter: str
+
+
+class DBInfoState(TypedDict):
+    dialect: str
+    version: str
+
+
 class DataAgentState(TypedDict):
-    # 提问问题
-    query: str
-    # 抽取关键字节点结果
-    keywords: list[str]
-    # 召回字段节点结果
-    retrieved_columns: list[ColumnInfo]
-    # 召回指标节点结果
-    retrieved_metrics: list[MetricInfo]
-    # 召回字段取值结果
-    retrieved_values: list[ValueInfo]
-    # 合并节点结果
+    query: str  # 用户查询
+    keywords: list[str]  # 用户查询的关键字
+
+    retrieved_columns: list[ColumnInfo]  # 召回的字段信息
+    retrieved_values: list[ValueInfo]  # 召回的值信息
+    retrieved_metrics: list[MetricInfo]  # 召回的指标信息
+
     table_infos: list[TableInfoState]  # 表信息
     metric_infos: list[MetricInfoState]  # 指标信息
 
-    # 校验SQL节点 SQL错误信息
-    error: str
+    date_info: DateInfoState  # 日期信息
+    db_info: DBInfoState  # 数据库信息
+
+    sql: str  # 生成的SQL
+
+    error: str  # 验证SQL时的错误信息

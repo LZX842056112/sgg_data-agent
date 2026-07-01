@@ -1,23 +1,50 @@
-from sqlalchemy import text, Result
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import Result
+from sqlalchemy.ext.asyncio.session import AsyncSession
+from sqlalchemy.sql.expression import text
 
 
 class DWMySQLRepository:
-    """跟MySQL数据库（数仓数据库）交互持久层 必须通过Session对象进行CURD"""
-
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_column_type_by_table_id(self, table_id: str) -> dict[str, str]:
-        """根据表ID/表名称查询该表下所有字段信息 目的获取字段数据类型"""
-        sql = f"show columns from {table_id}"
-        result: Result = await self.session.execute(text(sql))
-        # 查询结果是多列多行 返回列表 包装对象
+    async def get_column_types(self, table_name: str) -> dict[str, str]:
+        # 定义sql
+        sql = f"show columns  from {table_name}"
+        # 执行sql
+        result = await self.session.execute(text(sql))
+        # 解析结果[(),()]
         return {row.Field: row.Type for row in result.fetchall()}
 
-    async def get_column_values_by_table_id(self, table_id: str, column_name: str, limit: int = 10) -> list[str]:
-        """查询指定个数某张表某个字段取值"""
-        sql = f"SELECT distinct {column_name} from {table_id} limit {limit}"
+    async def get_column_values(self, table_name: str, column_name: str, limit: int = 10) -> list[str]:
+        # 定义sql
+        sql = f"select distinct  {column_name} from {table_name} limit {limit}"
+        # 执行sql
         result: Result = await self.session.execute(text(sql))
-        # 结果：一列多行
+        # 解析结果
         return result.scalars().fetchall()
+
+    async def get_db_info(self):
+        """
+        查询数据库环境信息，版本、方言
+        :return:
+        """
+        # 查询数据版本
+        result = await self.session.execute(text("select version()"))
+        # 解析结果
+        version = result.scalar()
+
+        # 查询数据方言
+        dialect = self.session.get_bind().dialect.name
+        return {"version": version, "dialect": dialect}
+
+    async def validate_sql(self, sql: str):
+        """
+        验证执行sql
+        :param sql:
+        :return: 如果sql语法不合法，会抛出异常
+        """
+        await self.session.execute(text(f"explain {sql}"))
+
+    async def execute_sql(self, sql: str):
+        result: Result = await self.session.execute(text(sql))
+        return [dict(row_mapping) for row_mapping in result.mappings().fetchall()]
